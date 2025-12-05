@@ -1,14 +1,13 @@
 #define UNICODE
 #define _UNICODE
-#include "progress_bar_windows.h"
 
+#include <windows.h>
 #include <commctrl.h>
 #include <shellscalingapi.h>
-#include <windows.h>
-
+#include <string>
 #include <codecvt>
 #include <locale>
-#include <string>
+#include "progress_bar_windows.h"
 
 #define DEFAULT_WINDOW_WIDTH 500
 #define DEFAULT_WINDOW_HEIGHT 150
@@ -73,11 +72,19 @@ bool RegisterProgressBarWindowClass() {
 }
 
 static inline std::wstring fromUTF8(const std::string& inString) {
+    auto cstr(inString.c_str());
     try {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-        return converter.from_bytes(inString);
+        std::wstring retVal;
+        auto targetSize = MultiByteToWideChar(CP_UTF8, 0, cstr, static_cast<int>(inString.size()), NULL, 0);
+        retVal.resize(targetSize);
+        auto res = MultiByteToWideChar(CP_UTF8, 0, cstr, static_cast<int>(inString.size()),
+                                       const_cast<LPWSTR>(retVal.data()), targetSize);
+        if (res == 0) {
+            return std::wstring(cstr[0], strlen(cstr));
+        }
+
+        return retVal;
     } catch (...) {
-        auto cstr(inString.c_str());
         return std::wstring(cstr[0], strlen(cstr));
     }
 }
@@ -99,8 +106,8 @@ void* ShowProgressBarWindows(
     }
 
     // Convert char* to wstring
-    auto wTitle(fromUTF8(title));
-    auto wMessage(fromUTF8(message));
+    std::wstring wTitle(fromUTF8(title));
+    std::wstring wMessage(fromUTF8(message));
 
     // Get screen dimensions
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
@@ -229,7 +236,7 @@ void* ShowProgressBarWindows(
     int startX = clientWidth - ScaleForDpi(WINDOW_MARGIN, dpi) - totalButtonWidth;
 
     for (size_t i = 0; i < buttonCount; i++) {
-        auto wButtonLabel(fromUTF8(buttonLabels[i]));
+        std::wstring wButtonLabel(fromUTF8(buttonLabels[i]));
         HWND hButton = CreateWindowExW(
             0,
             L"BUTTON",
@@ -291,7 +298,7 @@ void UpdateProgressBarWindows(
         // Find the message static control
         HWND hMessage = FindWindowExW(hwnd, NULL, L"STATIC", NULL);
         if (hMessage) {
-            auto wMessage(fromUTF8(message));
+            std::wstring wMessage(fromUTF8(message));
             SetWindowTextW(hMessage, wMessage.c_str());
         }
     }
@@ -323,7 +330,7 @@ void UpdateProgressBarWindows(
             int startX = clientWidth - ScaleForDpi(WINDOW_MARGIN, dpi) - totalButtonWidth;
 
             for (size_t i = 0; i < buttonCount; i++) {
-                auto wButtonLabel(fromUTF8(buttonLabels[i]));
+                std::wstring wButtonLabel(fromUTF8(buttonLabels[i]));
                 HWND hNewButton = CreateWindowExW(
                     0,
                     L"BUTTON",
