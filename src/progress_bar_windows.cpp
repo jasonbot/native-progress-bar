@@ -1,12 +1,14 @@
 #define UNICODE
 #define _UNICODE
-#include <windows.h>
+#include "progress_bar_windows.h"
+
 #include <commctrl.h>
 #include <shellscalingapi.h>
-#include <string>
+#include <windows.h>
+
 #include <codecvt>
 #include <locale>
-#include "progress_bar_windows.h"
+#include <string>
 
 #define DEFAULT_WINDOW_WIDTH 500
 #define DEFAULT_WINDOW_HEIGHT 150
@@ -14,16 +16,14 @@
 #define WINDOW_MARGIN 30
 
 // Add DPI awareness helper
-int GetWindowDpiHelper(HWND hwnd)
-{
+int GetWindowDpiHelper(HWND hwnd) {
     // Windows 10 1607 or later has GetDpiForWindow built in
     HMODULE user32 = GetModuleHandle(L"user32.dll");
     typedef UINT(WINAPI * GetDpiForWindowFunc)(HWND);
     GetDpiForWindowFunc getDpiForWindow =
         (GetDpiForWindowFunc)GetProcAddress(user32, "GetDpiForWindow");
 
-    if (getDpiForWindow)
-    {
+    if (getDpiForWindow) {
         return getDpiForWindow(hwnd);
     }
 
@@ -35,31 +35,24 @@ int GetWindowDpiHelper(HWND hwnd)
 }
 
 // Scale value based on DPI
-int ScaleForDpi(int value, int dpi)
-{
+int ScaleForDpi(int value, int dpi) {
     return MulDiv(value, dpi, 96);
 }
 
 // Window class name
-const wchar_t *WINDOW_CLASS_NAME = L"ProgressBarWindow";
+const wchar_t* WINDOW_CLASS_NAME = L"ProgressBarWindow";
 
 // Window procedure to handle button clicks and prevent closing
-LRESULT CALLBACK ProgressBarWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-    if (msg == WM_CLOSE)
-    {
-        return 0; // Ignore close request
-    }
-    else if (msg == WM_COMMAND)
-    {
+LRESULT CALLBACK ProgressBarWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (msg == WM_CLOSE) {
+        return 0;  // Ignore close request
+    } else if (msg == WM_COMMAND) {
         // Handle button clicks
         int buttonId = LOWORD(wParam);
-        if (buttonId >= 1)
-        { // Our buttons start from ID 1
+        if (buttonId >= 1) {  // Our buttons start from ID 1
             void (*callback)(int) = (void (*)(int))GetWindowLongPtr(hwnd, GWLP_USERDATA);
-            if (callback)
-            {
-                callback(buttonId - 1); // Convert back to 0-based index
+            if (callback) {
+                callback(buttonId - 1);  // Convert back to 0-based index
             }
         }
     }
@@ -67,11 +60,10 @@ LRESULT CALLBACK ProgressBarWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 }
 
 // Register the window class
-bool RegisterProgressBarWindowClass()
-{
+bool RegisterProgressBarWindowClass() {
     WNDCLASSEXW wc = {0};
     wc.cbSize = sizeof(WNDCLASSEXW);
-    wc.lpfnWndProc = ProgressBarWndProc; // Use our window procedure
+    wc.lpfnWndProc = ProgressBarWndProc;  // Use our window procedure
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = WINDOW_CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
@@ -80,36 +72,29 @@ bool RegisterProgressBarWindowClass()
     return RegisterClassExW(&wc) != 0;
 }
 
-static inline std::wstring fromUTF8(const std::string &inString)
-{
-    try
-    {
+static inline std::wstring fromUTF8(const std::string& inString) {
+    try {
         std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
         return converter.from_bytes(inString);
-    }
-    catch (...)
-    {
+    } catch (...) {
         auto cstr(inString.c_str());
         return std::wstring(cstr[0], strlen(cstr));
     }
 }
 
-void *ShowProgressBarWindows(
-    const char *title,
-    const char *message,
-    const char *style,
-    const char **buttonLabels,
+void* ShowProgressBarWindows(
+    const char* title,
+    const char* message,
+    const char* style,
+    const char** buttonLabels,
     size_t buttonCount,
-    void (*callback)(int))
-{
-
+    void (*callback)(int)) {
     // Set DPI awareness
     SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 
     // Register window class
     static bool registered = RegisterProgressBarWindowClass();
-    if (!registered)
-    {
+    if (!registered) {
         return nullptr;
     }
 
@@ -140,15 +125,14 @@ void *ShowProgressBarWindows(
         WINDOW_CLASS_NAME,
         wTitle.c_str(),
         WS_POPUP | WS_CAPTION | WS_VISIBLE,
-        windowX, windowY, // Centered position
+        windowX, windowY,  // Centered position
         windowWidth, windowHeight,
         NULL,
         NULL,
         GetModuleHandle(NULL),
         NULL);
 
-    if (!hwnd)
-    {
+    if (!hwnd) {
         return nullptr;
     }
 
@@ -168,7 +152,7 @@ void *ShowProgressBarWindows(
         WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         ScaleForDpi(WINDOW_MARGIN, dpi),
         ScaleForDpi(20, dpi),
-        clientWidth - ScaleForDpi(2 * WINDOW_MARGIN, dpi), // Width based on client area
+        clientWidth - ScaleForDpi(2 * WINDOW_MARGIN, dpi),  // Width based on client area
         ScaleForDpi(20, dpi),
         hwnd,
         NULL,
@@ -176,22 +160,22 @@ void *ShowProgressBarWindows(
         NULL);
 
     // Create DPI-aware font
-    int fontSize = ScaleForDpi(18, dpi); // Increased size
+    int fontSize = ScaleForDpi(18, dpi);  // Increased size
     HFONT hFont = CreateFontW(
-        fontSize,                 // Height
-        0,                        // Width
-        0,                        // Escapement
-        0,                        // Orientation
-        FW_NORMAL,                // Weight
-        FALSE,                    // Italic
-        FALSE,                    // Underline
-        0,                        // StrikeOut
-        ANSI_CHARSET,             // CharSet
-        OUT_DEFAULT_PRECIS,       // OutPrecision
-        CLIP_DEFAULT_PRECIS,      // ClipPrecision
-        CLEARTYPE_QUALITY,        // Quality
-        DEFAULT_PITCH | FF_SWISS, // PitchAndFamily
-        L"Segoe UI"               // Font Name
+        fontSize,                  // Height
+        0,                         // Width
+        0,                         // Escapement
+        0,                         // Orientation
+        FW_NORMAL,                 // Weight
+        FALSE,                     // Italic
+        FALSE,                     // Underline
+        0,                         // StrikeOut
+        ANSI_CHARSET,              // CharSet
+        OUT_DEFAULT_PRECIS,        // OutPrecision
+        CLIP_DEFAULT_PRECIS,       // ClipPrecision
+        CLEARTYPE_QUALITY,         // Quality
+        DEFAULT_PITCH | FF_SWISS,  // PitchAndFamily
+        L"Segoe UI"                // Font Name
     );
 
     // Apply font to message
@@ -208,7 +192,7 @@ void *ShowProgressBarWindows(
 
     // Make text background transparent
     LONG_PTR msgStyle = GetWindowLongPtr(hMessage, GWL_STYLE);
-    msgStyle |= SS_NOTIFY; // Add SS_NOTIFY style
+    msgStyle |= SS_NOTIFY;  // Add SS_NOTIFY style
     SetWindowLongPtr(hMessage, GWL_STYLE, msgStyle);
 
     // Set window background color to system default
@@ -225,7 +209,7 @@ void *ShowProgressBarWindows(
         WS_CHILD | WS_VISIBLE,
         ScaleForDpi(WINDOW_MARGIN, dpi),
         ScaleForDpi(50, dpi),
-        clientWidth - ScaleForDpi(2 * WINDOW_MARGIN, dpi), // Width based on client area
+        clientWidth - ScaleForDpi(2 * WINDOW_MARGIN, dpi),  // Width based on client area
         ScaleForDpi(24, dpi),
         hwnd,
         NULL,
@@ -235,7 +219,7 @@ void *ShowProgressBarWindows(
     // Create buttons if provided
     int buttonWidth = ScaleForDpi(100, dpi);
     int buttonHeight = ScaleForDpi(32, dpi);
-    int buttonSpacing = ScaleForDpi(10, dpi); // Reduced spacing between buttons
+    int buttonSpacing = ScaleForDpi(10, dpi);  // Reduced spacing between buttons
     int buttonY = ScaleForDpi(100, dpi);
 
     // Calculate total width needed for all buttons
@@ -244,15 +228,14 @@ void *ShowProgressBarWindows(
     // Start position for the first button (from right side)
     int startX = clientWidth - ScaleForDpi(WINDOW_MARGIN, dpi) - totalButtonWidth;
 
-    for (size_t i = 0; i < buttonCount; i++)
-    {
+    for (size_t i = 0; i < buttonCount; i++) {
         auto wButtonLabel(fromUTF8(buttonLabels[i]));
         HWND hButton = CreateWindowExW(
             0,
             L"BUTTON",
             wButtonLabel.c_str(),
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            startX + (i * (buttonWidth + buttonSpacing)), // Position from right to left
+            startX + (i * (buttonWidth + buttonSpacing)),  // Position from right to left
             buttonY,
             buttonWidth,
             buttonHeight,
@@ -276,15 +259,13 @@ void *ShowProgressBarWindows(
 }
 
 void UpdateProgressBarWindows(
-    void *handle,
+    void* handle,
     int progress,
-    const char *message,
+    const char* message,
     bool updateButtons,
-    const char **buttonLabels,
+    const char** buttonLabels,
     size_t buttonCount,
-    void (*callback)(int))
-{
-
+    void (*callback)(int)) {
     HWND hwnd = (HWND)handle;
     if (!hwnd)
         return;
@@ -302,28 +283,23 @@ void UpdateProgressBarWindows(
 
     // Find the progress bar window
     HWND hProgress = FindWindowExW(hwnd, NULL, PROGRESS_CLASSW, NULL);
-    if (hProgress)
-    {
+    if (hProgress) {
         SendMessage(hProgress, PBM_SETPOS, progress, 0);
     }
 
-    if (message)
-    {
+    if (message) {
         // Find the message static control
         HWND hMessage = FindWindowExW(hwnd, NULL, L"STATIC", NULL);
-        if (hMessage)
-        {
+        if (hMessage) {
             auto wMessage(fromUTF8(message));
             SetWindowTextW(hMessage, wMessage.c_str());
         }
     }
 
-    if (updateButtons)
-    {
+    if (updateButtons) {
         // Remove existing buttons
         HWND hButton = NULL;
-        while ((hButton = FindWindowExW(hwnd, hButton, L"BUTTON", NULL)) != NULL)
-        {
+        while ((hButton = FindWindowExW(hwnd, hButton, L"BUTTON", NULL)) != NULL) {
             DestroyWindow(hButton);
         }
 
@@ -335,8 +311,7 @@ void UpdateProgressBarWindows(
         int windowX = (screenWidth - windowWidth) / 2;
         int windowY = (screenHeight - windowHeight) / 2;
 
-        if (buttonCount > 0)
-        {
+        if (buttonCount > 0) {
             // Create new buttons with DPI scaling
             int buttonWidth = ScaleForDpi(100, dpi);
             int buttonHeight = ScaleForDpi(32, dpi);
@@ -347,8 +322,7 @@ void UpdateProgressBarWindows(
             int totalButtonWidth = (buttonWidth * buttonCount) + (buttonSpacing * (buttonCount - 1));
             int startX = clientWidth - ScaleForDpi(WINDOW_MARGIN, dpi) - totalButtonWidth;
 
-            for (size_t i = 0; i < buttonCount; i++)
-            {
+            for (size_t i = 0; i < buttonCount; i++) {
                 auto wButtonLabel(fromUTF8(buttonLabels[i]));
                 HWND hNewButton = CreateWindowExW(
                     0,
@@ -379,11 +353,9 @@ void UpdateProgressBarWindows(
     }
 }
 
-void CloseProgressBarWindows(void *handle)
-{
+void CloseProgressBarWindows(void* handle) {
     HWND hwnd = (HWND)handle;
-    if (hwnd)
-    {
+    if (hwnd) {
         DestroyWindow(hwnd);
     }
 }
