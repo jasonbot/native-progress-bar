@@ -74,8 +74,8 @@ function createSimpleProgressBar() {
   let interval, progressBar;
 
   progressBar = new ProgressBar({
-    title: "Hi!",
-    message: "Deleting all kinds of files!",
+    title: "Hi! ハロー・ワールド",
+    message: "Deleting all kinds of files! ハロー・ワールド",
     style: "default",
     progress: 10,
     onClose: () => {
@@ -92,8 +92,8 @@ function createProgressBarWithButton() {
   let progressBar, interval;
 
   progressBar = new ProgressBar({
-    title: "Hi!",
-    message: "Deleting all kinds of files!",
+    title: "Hi! ハロー・ワールド",
+    message: "Deleting all kinds of files! ハロー・ワールド",
     style: "default",
     progress: 10,
     buttons: [getDefaultCancelButton()],
@@ -110,8 +110,8 @@ function createProgressBarWithAppearingButton() {
   let progressBar, interval;
 
   progressBar = new ProgressBar({
-    title: "Hi!",
-    message: "Deleting all kinds of files!",
+    title: "Hi! ハロー・ワールド",
+    message: "Deleting all kinds of files! ハロー・ワールド",
     style: "default",
     progress: 10,
     onClose: () => {
@@ -134,8 +134,8 @@ function createProgressBarWithDisappearingButton() {
   let progressBar, interval;
 
   progressBar = new ProgressBar({
-    title: "Hi!",
-    message: "Deleting all kinds of files!",
+    title: "Hi! ハロー・ワールド",
+    message: "Deleting all kinds of files! ハロー・ワールド",
     style: "default",
     progress: 10,
     onClose: () => {
@@ -159,8 +159,8 @@ function createProgressBarWithMultipleButtons() {
   let progressBar, interval;
 
   progressBar = new ProgressBar({
-    title: "Hi!",
-    message: "Deleting all kinds of files!",
+    title: "Hi! ハロー・ワールド",
+    message: "Deleting all kinds of files! ハロー・ワールド",
     style: "hud",
     progress: 10,
     buttons: [
