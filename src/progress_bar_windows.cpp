@@ -72,19 +72,11 @@ bool RegisterProgressBarWindowClass() {
 }
 
 static inline std::wstring fromUTF8(const std::string& inString) {
-    auto cstr(inString.c_str());
     try {
-        std::wstring retVal;
-        auto targetSize = MultiByteToWideChar(CP_UTF8, 0, cstr, static_cast<int>(inString.size()), NULL, 0);
-        retVal.resize(targetSize);
-        auto res = MultiByteToWideChar(CP_UTF8, 0, cstr, static_cast<int>(inString.size()),
-                                       const_cast<LPWSTR>(retVal.data()), targetSize);
-        if (res == 0) {
-            return std::wstring(cstr[0], strlen(cstr));
-        }
-
-        return retVal;
+        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+        return converter.from_bytes(inString);
     } catch (...) {
+        auto cstr(inString.c_str());
         return std::wstring(cstr[0], strlen(cstr));
     }
 }
